@@ -1,1 +1,2 @@
 # SQL-File-Conversion-into-a-Table-Using-Python
+SQL File Conversion into a more usable table format This code takes two sql files old and new and creates dataframe for both Then compares the dataframes for any changes between the new file and the old file and writes them side by side This code also stacks new rows under old rows if any changes has been made between them. Finally it writes the output on an .xlsx file.
