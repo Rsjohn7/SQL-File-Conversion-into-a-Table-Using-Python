@@ -1,0 +1,431 @@
+################################################################
+######## Upload the new file and run the whole code ############
+################################################################
+
+###### Redshift psycopg2 connection ######
+# Import the dblogin to get the database credentials
+import dblogin
+# Import Psycopg2 and Pandas module
+import psycopg2
+import pandas as pd
+# Redshift connection string
+rsconn=psycopg2.connect(dbname=dblogin.rsdb, host=dblogin.rshost, port=5439, user=dblogin.rsuser, password=dblogin.rspwd)
+# SQL statement to be processed
+query = ("Select * from fre01_prodedl_app_mrp.product_reporting_summary")
+# Execute SQL query and the store the output in a Pandas dataframe
+df = pd.read_sql(query,rsconn)
+# Display the output
+#display(df.head())
+
+
+# Reading productHierarchyCaseStatement.sql file and spliting at every 'WHEN' 
+# and writing the new file as productHierarchyCaseStatement_new.csv
+import csv
+with open('productHierarchyCaseStatementNew2.sql') as file_, open('productHierarchyCaseStatement_new.csv', 'w') as csvfile:
+    lines = [x for x in file_.read().strip('"').split('WHEN') if x]
+    writer = csv.writer(csvfile, delimiter=',')
+    writer.writerow(('ID', 'Conditions'))
+    for idx, line in enumerate(lines, 1):
+        writer.writerow((idx, line.strip(' ')))
+        
+# importing the pandas library
+import pandas as pd
+
+# reading the newly created productHierarchyCaseStatement_new.csv file
+df2 = pd.read_csv("productHierarchyCaseStatement_new.csv")
+  
+# updating the column value/data
+df2['CASE'] = 'WHEN'
+df2.to_csv(index=False)
+
+# Removing the first column since its NaN
+df2 = df2.iloc[1:]
+
+# Deleting column 'ID'
+del df2['ID']
+# Assigning everything With the word THEN and after as product
+df2 = df2.assign(product=df2['Conditions'].str.extract('(THEN.*)'))
+
+# Taking everything after the word THEN as PRODUCT_ID
+df2['PRODUCT_ID'] = df2['product'].str[4:]
+# Removing white space from both ends of all the columns
+df2.columns = df2.columns.str.strip()
+# Deleting column 'product'
+del df2['product']
+
+# Taking everything before the word 'THEN' as new column "CONDITIONS"
+df2['CONDITIONS'] = df2['Conditions'].apply(lambda x: x.split('THEN')[0])
+
+# updating the column value/data
+df2['THEN'] = 'THEN'
+
+# Cleaning Column PRODUCT_ID from space, ' and "
+df2['PRODUCT_ID'] = df2['PRODUCT_ID'].str.strip()
+df2['PRODUCT_ID'] = df2['PRODUCT_ID'].str.strip("'")
+df2['PRODUCT_ID'] = df2['PRODUCT_ID'].str.rstrip('"')
+df2['PRODUCT_ID'] = df2['PRODUCT_ID'].str.lstrip("'")
+df2 = df2[['CASE', 'CONDITIONS','THEN', 'PRODUCT_ID']]
+df2['CONDITIONS'] = df2['CONDITIONS'].str.lstrip()
+
+# Left align the columns
+#df2 = df2.style.set_properties(**{'text-align': 'left'})
+#df2 = df2.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
+#display(df2)
+
+# Converting more than two blanks in one in the column CONDITIONS
+df2['CONDITIONS'] = df2['CONDITIONS'].replace('\s+', ' ', regex=True)
+df2['CONDITIONS'] = df2['CONDITIONS'].str.replace(r"(\s*\[.' '?\]\s*)", " ").str.strip()
+
+# Repeatedly Partitioning column CONDITIONS on ' and ' and assigning New column names
+New = df2["CONDITIONS"].str.partition(" and ", True)
+#display(new)
+df2["Rest"] = New[2]
+df2["CRITERIA1"] = New[0]
+df2["AND"] = New[1]
+
+New2 = df2["Rest"].str.partition(" and ", True)
+#display(new)
+df2["Rest2"] = New2[2]
+df2["CRITERIA2"] = New2[0]
+df2["AND2"] = New2[1]
+
+New3 = df2["Rest2"].str.partition(" and ", True)
+#display(new)
+df2["Rest3"] = New3[2]
+df2["CRITERIA3"] = New3[0]
+df2["AND3"] = New3[1]
+
+New4 = df2["Rest3"].str.partition(" and ", True)
+#display(new)
+df2["Rest4"] = New4[2]
+df2["CRITERIA4"] = New4[0]
+df2["AND4"] = New4[1]
+
+
+New5 = df2["Rest4"].str.partition(" and ", True)
+#display(new)
+df2["Rest5"] = New5[2]
+df2["CRITERIA5"] = New5[0]
+df2["AND5"] = New5[1]
+
+
+New6 = df2["Rest5"].str.partition(" and ", True)
+#display(new)
+df2["Rest6"] = New6[2]
+df2["CRITERIA6"] = New6[0]
+df2["AND6"] = New6[1]
+
+
+New7 = df2["Rest6"].str.partition(" and ", True)
+#display(new)
+df2["Rest7"] = New7[2]
+df2["CRITERIA7"] = New7[0]
+df2["AND7"] = New7[1]
+
+New8 = df2["Rest7"].str.partition(" and ", True)
+#display(new)
+df2["Rest8"] = New8[2]
+df2["CRITERIA8"] = New8[0]
+df2["AND8"] = New8[1]
+
+New9 = df2["Rest8"].str.partition(" and ", True)
+#display(new)
+df2["Rest9"] = New9[2]
+df2["CRITERIA9"] = New9[0]
+df2["AND9"] = New9[1]
+
+New10 = df2["Rest9"].str.partition(" and ", True)
+#display(new)
+df2["Rest10"] = New10[2]
+df2["CRITERIA10"] = New10[0]
+df2["AND10"] = New10[1]
+
+New11 = df2["Rest10"].str.partition(" and ", True)
+#display(new)
+df2["REST11"] = New11[2]
+df2["CRITERIA11"] = New11[0]
+df2["AND11"] = New11[1]
+#Dropping unnecessary columns
+df2 = df2.drop(['Rest','Rest2','Rest3','Rest4','Rest5','Rest6','Rest7','Rest8','Rest9','Rest10'], 1)
+
+# Reorganizing the columns
+df2 = df2[['CASE', 'CONDITIONS', 'CRITERIA1', 'AND', 'CRITERIA2', 'AND2', 'CRITERIA3', 
+          'AND3', 'CRITERIA4', 'AND4', 'CRITERIA5', 'AND5', 'CRITERIA6', 'AND6', 'CRITERIA7', 'AND7', 'CRITERIA8', 
+          'AND8', 'CRITERIA9', 'AND9', 'CRITERIA10', 'AND10', 'CRITERIA11', 'AND11','REST11', 'THEN', 'PRODUCT_ID']]
+
+#display(df2)
+
+
+#Changing PRODUCT_ID column to numeric
+df2['PRODUCT_ID'] = pd.to_numeric(df2['PRODUCT_ID'], errors='coerce')
+
+
+# Creating a common column in both dataframes df and df2
+df["PRODUCT_ID"] = df["aggr_product_key"]
+
+
+# Left Joining the dataframes on 'PRODUCT_ID'
+df_final = df.merge(df2, on='PRODUCT_ID', how='left', indicator=True)
+
+
+# Creating Source_indicator field to track data flow
+df_final["SOURCE_INDICATOR"] = df_final["_merge"]
+# Dropping unnecessary columns
+df_final = df_final.drop(['_merge','CONDITIONS'], 1)
+# Reorganizing the columns
+df_final_new = df_final[['level1', 'level2', 'level3', 'level4', 'level5', 'level6', 'aggr_product_key', 'CASE', 'CRITERIA1', 'AND', 'CRITERIA2',
+                     'AND2', 'CRITERIA3', 'AND3', 'CRITERIA4', 'AND4', 'CRITERIA5', 'AND5', 'CRITERIA6', 'AND6', 'CRITERIA7',
+                     'AND7', 'CRITERIA8', 'AND8', 'CRITERIA9', 'AND9', 'CRITERIA10', 'AND10', 'CRITERIA11', 'AND11', 'REST11',
+                     'THEN', 'PRODUCT_ID', 'SOURCE_INDICATOR', 'lst_updt_dttm']]
+# Changing all column names to lower case
+df_final_new.columns= df_final_new.columns.str.lower()
+
+
+#Writing the final table as an .xlsx file for MR Consumption
+writer = pd.ExcelWriter('productHierarchyCaseStatementNew2.xlsx', engine='xlsxwriter')
+df_final_new.to_excel(writer, sheet_name='Sheet1', index=False)
+writer.save()
+#display(df_final_new.head())
+
+
+
+
+################################################################
+######## Upload the old file and run the whole code ############
+################################################################
+
+# Reading productHierarchyCaseStatement.sql file and spliting at every 'WHEN' 
+# and writing the new file as productHierarchyCaseStatement_new.csv
+import csv
+with open('productHierarchyCaseStatement.sql') as file_, open('productHierarchyCaseStatement_new.csv', 'w') as csvfile:
+    lines = [x for x in file_.read().strip('"').split('WHEN') if x]
+    writer = csv.writer(csvfile, delimiter=',')
+    writer.writerow(('ID', 'Conditions'))
+    for idx, line in enumerate(lines, 1):
+        writer.writerow((idx, line.strip(' ')))
+
+# importing the pandas library
+import pandas as pd
+
+# reading the newly created productHierarchyCaseStatement_new.csv file
+df2 = pd.read_csv("productHierarchyCaseStatement_new.csv")
+  
+# updating the column value/data
+df2['CASE'] = 'WHEN'
+df2.to_csv(index=False)
+
+# Removing the first column since its NaN
+df2 = df2.iloc[1:]
+
+# Deleting column 'ID'
+del df2['ID']
+# Assigning everything With the word THEN and after as product
+df2 = df2.assign(product=df2['Conditions'].str.extract('(THEN.*)'))
+
+# Taking everything after the word THEN as PRODUCT_ID
+df2['PRODUCT_ID'] = df2['product'].str[4:]
+# Removing white space from both ends of all the columns
+df2.columns = df2.columns.str.strip()
+# Deleting column 'product'
+del df2['product']
+
+# Taking everything before the word 'THEN' as new column "CONDITIONS"
+df2['CONDITIONS'] = df2['Conditions'].apply(lambda x: x.split('THEN')[0])
+
+# updating the column value/data
+df2['THEN'] = 'THEN'
+
+# Cleaning Column PRODUCT_ID from space, ' and "
+df2['PRODUCT_ID'] = df2['PRODUCT_ID'].str.strip()
+df2['PRODUCT_ID'] = df2['PRODUCT_ID'].str.strip("'")
+df2['PRODUCT_ID'] = df2['PRODUCT_ID'].str.rstrip('"')
+df2['PRODUCT_ID'] = df2['PRODUCT_ID'].str.lstrip("'")
+df2 = df2[['CASE', 'CONDITIONS','THEN', 'PRODUCT_ID']]
+df2['CONDITIONS'] = df2['CONDITIONS'].str.lstrip()
+
+# Left align the columns
+#df2 = df2.style.set_properties(**{'text-align': 'left'})
+#df2 = df2.set_table_styles([dict(selector='th', props=[('text-align', 'left')])])
+#display(df2)
+
+# Converting more than two blanks in one in the column CONDITIONS
+df2['CONDITIONS'] = df2['CONDITIONS'].replace('\s+', ' ', regex=True)
+df2['CONDITIONS'] = df2['CONDITIONS'].str.replace(r"(\s*\[.' '?\]\s*)", " ").str.strip()
+
+# Repeatedly Partitioning column CONDITIONS on ' and ' and assigning New column names
+New = df2["CONDITIONS"].str.partition(" and ", True)
+#display(new)
+df2["Rest"] = New[2]
+df2["CRITERIA1"] = New[0]
+df2["AND"] = New[1]
+
+New2 = df2["Rest"].str.partition(" and ", True)
+#display(new)
+df2["Rest2"] = New2[2]
+df2["CRITERIA2"] = New2[0]
+df2["AND2"] = New2[1]
+
+New3 = df2["Rest2"].str.partition(" and ", True)
+#display(new)
+df2["Rest3"] = New3[2]
+df2["CRITERIA3"] = New3[0]
+df2["AND3"] = New3[1]
+
+New4 = df2["Rest3"].str.partition(" and ", True)
+#display(new)
+df2["Rest4"] = New4[2]
+df2["CRITERIA4"] = New4[0]
+df2["AND4"] = New4[1]
+
+
+New5 = df2["Rest4"].str.partition(" and ", True)
+#display(new)
+df2["Rest5"] = New5[2]
+df2["CRITERIA5"] = New5[0]
+df2["AND5"] = New5[1]
+
+
+New6 = df2["Rest5"].str.partition(" and ", True)
+#display(new)
+df2["Rest6"] = New6[2]
+df2["CRITERIA6"] = New6[0]
+df2["AND6"] = New6[1]
+
+
+New7 = df2["Rest6"].str.partition(" and ", True)
+#display(new)
+df2["Rest7"] = New7[2]
+df2["CRITERIA7"] = New7[0]
+df2["AND7"] = New7[1]
+
+New8 = df2["Rest7"].str.partition(" and ", True)
+#display(new)
+df2["Rest8"] = New8[2]
+df2["CRITERIA8"] = New8[0]
+df2["AND8"] = New8[1]
+
+New9 = df2["Rest8"].str.partition(" and ", True)
+#display(new)
+df2["Rest9"] = New9[2]
+df2["CRITERIA9"] = New9[0]
+df2["AND9"] = New9[1]
+
+New10 = df2["Rest9"].str.partition(" and ", True)
+#display(new)
+df2["Rest10"] = New10[2]
+df2["CRITERIA10"] = New10[0]
+df2["AND10"] = New10[1]
+
+New11 = df2["Rest10"].str.partition(" and ", True)
+#display(new)
+df2["REST11"] = New11[2]
+df2["CRITERIA11"] = New11[0]
+df2["AND11"] = New11[1]
+#Dropping unnecessary columns
+df2 = df2.drop(['Rest','Rest2','Rest3','Rest4','Rest5','Rest6','Rest7','Rest8','Rest9','Rest10'], 1)
+
+# Reorganizing the columns
+df2 = df2[['CASE', 'CONDITIONS', 'CRITERIA1', 'AND', 'CRITERIA2', 'AND2', 'CRITERIA3', 
+          'AND3', 'CRITERIA4', 'AND4', 'CRITERIA5', 'AND5', 'CRITERIA6', 'AND6', 'CRITERIA7', 'AND7', 'CRITERIA8', 
+          'AND8', 'CRITERIA9', 'AND9', 'CRITERIA10', 'AND10', 'CRITERIA11', 'AND11','REST11', 'THEN', 'PRODUCT_ID']]
+
+
+
+#Changing PRODUCT_ID column to numeric
+df2['PRODUCT_ID'] = pd.to_numeric(df2['PRODUCT_ID'], errors='coerce')
+
+# Creating a common column in both dataframes df and df2
+df["PRODUCT_ID"] = df["aggr_product_key"]
+
+
+# Left Joining the dataframes on 'PRODUCT_ID'
+df_final = df.merge(df2, on='PRODUCT_ID', how='left', indicator=True)
+
+
+# Creating Source_indicator field to track data flow
+df_final["SOURCE_INDICATOR"] = df_final["_merge"]
+# Dropping unnecessary columns
+df_final = df_final.drop(['_merge','CONDITIONS'], 1)
+# Reorganizing the columns
+df_final_old = df_final[['level1', 'level2', 'level3', 'level4', 'level5', 'level6', 'aggr_product_key', 'CASE', 'CRITERIA1', 'AND', 'CRITERIA2',
+                     'AND2', 'CRITERIA3', 'AND3', 'CRITERIA4', 'AND4', 'CRITERIA5', 'AND5', 'CRITERIA6', 'AND6', 'CRITERIA7',
+                     'AND7', 'CRITERIA8', 'AND8', 'CRITERIA9', 'AND9', 'CRITERIA10', 'AND10', 'CRITERIA11', 'AND11', 'REST11',
+                     'THEN', 'PRODUCT_ID', 'SOURCE_INDICATOR', 'lst_updt_dttm']]
+# Changing all column names to lower case
+df_final_old.columns= df_final_old.columns.str.lower()
+
+#Writing the final table as an .xlsx file for MR Consumption
+writer = pd.ExcelWriter('productHierarchyCaseStatement.xlsx', engine='xlsxwriter')
+df_final_old.to_excel(writer, sheet_name='Sheet1', index=False)
+writer.save()
+#display(df_final_old.head())
+
+
+# Comparison of the dataframes
+# Taking Unique rows between the two dataframes
+df_diff = pd.concat([df_final_old,df_final_new]).drop_duplicates(keep=False)
+
+# Sorting the unique rows in the order of their appearance
+df_diff_ordered = df_diff.reset_index().sort_values(by=['aggr_product_key', 'index']).drop(['index'], axis=1)
+
+#Writing the df_diff_ordered table as an .xlsx file for MR Consumption
+writer = pd.ExcelWriter('df_diff_ordered.xlsx', engine='xlsxwriter')
+df_diff_ordered.to_excel(writer, sheet_name='Sheet1', index=False)
+writer.save()
+
+## Finding the differences and stacking them
+ne_stacked = (df_final_old != df_final_new).stack()
+
+changed = ne_stacked[ne_stacked]
+
+changed.index.names = ['row', 'col']
+
+
+# Finding the location of the differences in the two dataframes
+import numpy as np
+difference_locations = np.where(df_final_old != df_final_new)
+
+changed_from = df_final_old.values[difference_locations]
+
+changed_to = df_final_new.values[difference_locations]
+
+df_changes = pd.DataFrame({'from': changed_from, 'to': changed_to}, index=changed.index)
+
+
+
+# Taking the indexes from the df_changes whose index match with the df_diff indexes
+df_diff.index.names = ['row']
+df_changes_final = df_changes.loc[df_diff.index.unique()]
+
+
+
+## Taking the unique 'aggr_product_key's and indexes from df_diff dataframe to merge with 'df_changes_final' dataframe
+df_diff_part = df_diff['aggr_product_key'].drop_duplicates()
+
+
+
+## Marging 'df_changes_final' and 'df_diff_part' dataframes
+df_all_changes = df_changes_final.merge(df_diff_part, left_on=df_changes_final.index.get_level_values('row'), right_on=df_diff_part.index.get_level_values('row'))
+
+
+## Removing unnecessary Columns
+df_all_changes = df_all_changes.drop(['key_0'], 1)
+
+# Removing Leading and Trailling spaces from columns 'from' and 'to'
+df_all_changes['from'] = df_all_changes['from'].str.strip()
+df_all_changes['to'] = df_all_changes['to'].str.strip()
+
+# Changing all Empty spaces to 'NaN' in the 'df_all_changes' dataframe for easy rows removal
+df_all_changes = df_all_changes.replace(r'^\s*$', np.nan, regex=True)
+
+# Removing rows that have 'NaN' in both 'from' and 'to' columns
+df_all_changes = df_all_changes.dropna(subset=['from','to'], how='all')
+
+## Reorganizing Columns
+df_all_changes = df_all_changes[['aggr_product_key','from','to']]
+
+#Writing the final 'df_all_changes' dataframe as an .xlsx file for MR Consumption
+writer = pd.ExcelWriter('df_all_changes.xlsx', engine='xlsxwriter')
+df_all_changes.to_excel(writer, sheet_name='Sheet1', index=False)
+writer.save()
+display(df_all_changes)
